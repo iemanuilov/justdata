@@ -291,7 +291,8 @@ def app(username):
 
     elif action == "Annotate Dataset":
         
-        st.sidebar.header("⚙️JUST Chatbot Settings")
+        #st.sidebar.header("⚙️JUST Chatbot Settings")
+        st.sidebar.markdown("## ⚙️JUST Chatbot Settings <small style='color: gray;'>🏷️BETA</small>", unsafe_allow_html=True)
         st.sidebar.markdown("<small>Please enter your OpenAI API Key to unlock the JUST chatbot.</small>", unsafe_allow_html=True)
         with st.sidebar.form(key='chatbot_settings_form'):
             openai_api_key = st.text_input("OpenAI API Key", type="password")
