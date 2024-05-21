@@ -297,7 +297,7 @@ def app(username):
             openai_api_key = st.text_input("OpenAI API Key", type="password")
             submit_button = st.form_submit_button(label='Submit')
 
-        st.sidebar.markdown("<small><b>Hint:</b>Use the OpenAI API Key provided in the documentation.This is an example of an API 🔑:<br>`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`</small>", unsafe_allow_html=True)
+        st.sidebar.markdown("<small>Use the OpenAI API key provided in the documentation. This is an example of an API 🔑:<br>`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`</small>", unsafe_allow_html=True)
 
         if 'chatbot_active' not in st.session_state:
                 st.session_state['chatbot_active'] = False
