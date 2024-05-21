@@ -159,26 +159,6 @@ def load_dataset(dataset_url):
     data = pd.read_csv(StringIO(response.text))
     return data
 
-# Function to query an OpenAI model
-# def query_model(prompt):
-#     #openai.api_key = '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'
-    
-#     # Initialize the OpenAI client with your API key
-#     client = OpenAI(api_key='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')
-
-#     # Create a chat completion using the chat model
-#     completion = client.chat.completions.create(
-#         model='gpt-3.5-turbo-1106',
-#         messages=[
-#             {'role': 'user', 'content': prompt}
-#         ],
-#         temperature=0.7  # Adjust the temperature as needed
-#     )
-
-#     # Extract the response from the completion
-#     response = completion.choices[0].message.content
-#     return response
-
 # Main app
 def main():
     st.title("⚖️JUST Data Annotation Tool")
@@ -317,7 +297,7 @@ def app(username):
             openai_api_key = st.text_input("OpenAI API Key", type="password")
             submit_button = st.form_submit_button(label='Submit')
 
-        st.sidebar.markdown("<small><i><b>🔑Hint:</b>Use this OpenAI API Key:</i><br>`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`</small>", unsafe_allow_html=True)
+        st.sidebar.markdown("<small><b>Hint:</b>Use the OpenAI API Key provided in the documentation.This is an example of an API 🔑:<br>`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`</small>", unsafe_allow_html=True)
 
         if 'chatbot_active' not in st.session_state:
                 st.session_state['chatbot_active'] = False
