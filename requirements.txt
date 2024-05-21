@@ -72,8 +72,6 @@ pydeck==0.9.1
 Pygments==2.18.0
 PyJWT==2.3.0
 pyparsing==2.4.7
-python-apt==2.4.0+ubuntu3
-python-dateutil==2.9.0.post0
 pytz==2024.1
 PyYAML==5.4.1
 referencing==0.35.1
