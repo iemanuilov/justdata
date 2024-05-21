@@ -23,7 +23,6 @@ fsspec==2024.3.1
 gitdb==4.0.11
 GitPython==3.1.43
 greenlet==3.0.3
-gyp==0.1
 h11==0.14.0
 httpcore==1.0.5
 httplib2==0.20.2
