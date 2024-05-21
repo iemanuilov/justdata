@@ -18,6 +18,6 @@ To install the necessary requirements, run:
 
 To run on a local server, run:  
 
-```streamlit run justdatatool.py --server.enableCORS false --server.enableXsrfProtection false```
+```streamlit run justdata.py --server.enableCORS false --server.enableXsrfProtection false```
 
 If you need more information or would like to contribute to JUST Data Annotation, please contact us at info@industrycommons.net
