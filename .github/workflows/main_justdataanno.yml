@@ -75,4 +75,6 @@ jobs:
         with:
           app-name: 'justdataanno'
           slot-name: 'Production'
+          startup-command: 'streamlit run justdata.py --server.address=0.0.0.0 --server.port=8000'
+
           
