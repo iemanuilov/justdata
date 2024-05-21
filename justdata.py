@@ -257,7 +257,6 @@ def main():
             st.session_state["new_password"] = new_password
             st.session_state["just_registered"] = True  # Set the flag to True after registering
             if "just_registered" in st.session_state and st.session_state["just_registered"]:
-                st.success("You have registered successfully. Please go to Login.")
                 st.session_state["just_registered"] = False  # Reset the flag after displaying the message
 
 def app(username):
