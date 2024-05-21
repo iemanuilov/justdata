@@ -14,7 +14,6 @@ click==8.1.7
 cryptography==3.4.8
 dataclasses-json==0.6.6
 datasets==2.19.1
-dbus-python==1.2.18
 dill==0.3.8
 exceptiongroup==1.2.1
 filelock==3.14.0
