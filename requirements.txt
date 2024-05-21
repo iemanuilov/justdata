@@ -73,7 +73,6 @@ Pygments==2.18.0
 PyJWT==2.3.0
 pyparsing==2.4.7
 pytz==2024.1
-PyYAML==5.4.1
 referencing==0.35.1
 requests==2.31.0
 rich==13.7.1
