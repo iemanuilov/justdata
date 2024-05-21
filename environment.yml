@@ -26,3 +26,4 @@ dependencies:
    - openai
    - huggingface-hub
    - jsonschema
+   - QA-Annotator
