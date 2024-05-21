@@ -334,7 +334,8 @@ def app(username):
                 st.session_state['chatbot_active'] = True
             
             if st.session_state['chatbot_active']:
-                st.subheader("💬JUST explore and chat with your dataset")
+                #st.subheader("💬JUST explore and chat with your dataset")
+                st.markdown("### 💬JUST explore and chat with your dataset <small style='color: gray;'>🏷️BETA</small>", unsafe_allow_html=True)
                 st.dataframe(df) # Let's visualise the dataset
             # Initialize conversation history
                 if "messages" not in st.session_state or st.sidebar.button("Clear conversation history"):
