@@ -12,7 +12,7 @@ JUST Data Annotation focuses on developing a digital workflow fostering gender e
 
 The fronted was built using ```streamlit``` to create a scriptable web app. The backend was built using ```SQLite```, ```JSON```, ```pandas``` and other popular Python libraries.
 
-The app has been deployed on the ```Azure Web App Service``` and is available [here](https://justdataanno.azurewebsites.net/).
+The app has been deployed on the ```Azure Web App Service``` and is available [here](https://justdataanno.azurewebsites.net/). It is also available on the Streamlit Community Cloud [here](https://justdataanno.streamlit.app/).
 
 To install the necessary requirements, run:  
 
