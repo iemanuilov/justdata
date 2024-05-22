@@ -21,15 +21,11 @@ from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
 
-# Get the DB path from an environment variable
-# db_path = os.getenv('DB_PATH')
-
 # Create a subfolder named 'database' if it doesn't exist
-# os.makedirs('database', exist_ok=True)
+os.makedirs('database', exist_ok=True)
 
 # Connect to SQLite database
-conn = sqlite3.connect('/home/justdata/database/justdata.db')
-# conn = sqlite3.connect(os.path.join(db_path), 'justdata.db')
+conn = sqlite3.connect('database/justdata.db')
 c = conn.cursor()
 
 # Create table for users if it doesn't exist
