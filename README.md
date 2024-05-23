@@ -13,6 +13,10 @@ JUST Data Annotation focuses on developing a digital workflow fostering gender e
 The fronted was built using ```streamlit``` to create a scriptable web app. The backend was built using ```SQLite```, ```JSON```, ```pandas``` and other popular Python libraries.
 
 ## Installation
+Clone the repository:
+
+```git clone https://github.com/IndustryCommons/justdata.git```
+
 To install the necessary requirements, run:  
 
 ```pip install -r requirements.txt```
