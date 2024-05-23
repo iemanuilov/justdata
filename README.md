@@ -17,7 +17,7 @@ Clone the repository:
 
 ```git clone https://github.com/IndustryCommons/justdata.git```
 
-To install the necessary requirements, run:  
+Install the necessary requirements, run:  
 
 ```pip install -r requirements.txt```
 
