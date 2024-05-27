@@ -10,7 +10,7 @@ import io
 import requests
 import shutil
 import pandas as pd
-import sqlalchemy
+# import sqlalchemy
 import hashlib
 from io import StringIO
 from streamlit_tags import st_tags
