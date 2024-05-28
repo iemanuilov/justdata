@@ -26,7 +26,7 @@ To run on a local server, execute:
 
 ```streamlit run justdata.py --server.enableCORS false --server.enableXsrfProtection false```
 
-The app has been deployed on the ```Azure Web App Service``` and is available [here](https://justdataanno.azurewebsites.net/). It is also available on the Streamlit Community Cloud [here](https://justdatatool.streamlit.app/).
+The app has been deployed on the on the Streamlit Community Cloud [here](https://justdatatool.streamlit.app/). It is also available on ```Azure Web App Service``` [here](https://justdatatool.azurewebsites.net/).
 
 ## Get in touch
 If you need more information or would like to contribute to JUST Data Annotation, please contact us at info@industrycommons.net
