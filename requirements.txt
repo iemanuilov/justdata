@@ -63,7 +63,7 @@ packaging==23.2
 pandas==2.2.2
 pillow==10.3.0
 protobuf==4.25.3
-psycopg2
+psycopg2-binary
 pyarrow==16.0.0
 pyarrow-hotfix==0.6
 pydantic==2.7.1
