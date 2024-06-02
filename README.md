@@ -10,7 +10,7 @@ JUST Data Annotation focuses on developing a digital workflow fostering gender e
 * Prototyping new standards and formulating practical guidelines for businesses to implement JUST data principles in their operations.
 * Establishing testbed environments to trial, iterate and refine the JUST data annotation processes, ensuring they are effective and applicable across various industry sectors.
 
-The fronted was built using ```streamlit``` to create a scriptable web app. The backend was built using ```SQLite```, ```JSON```, ```pandas``` and other popular Python libraries.
+The fronted was built using ```streamlit``` to create a scriptable web app. The backend was built using ```PostgreSQL```, ```JSON```, ```pandas```, ```langchain```, ```openai``` and other popular Python libraries.
 
 ## Installation
 Clone the repository:
