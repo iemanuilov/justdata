@@ -28,7 +28,6 @@ from langchain.callbacks import StreamlitCallbackHandler
 # os.makedirs('database', exist_ok=True)
 
 # Connect to PostgreSQL database
-#conn = psycopg2.connect('postgres://avnadmin:AVNS_UY8WVCi9Mez0qXkyR8V@justdata-justdatatool.j.aivencloud.com:11802/defaultdb?sslmode=require')
 conn = psycopg2.connect(
     dbname=st.secrets["postgres"]["database"],
     user=st.secrets["postgres"]["user"],
