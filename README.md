@@ -26,7 +26,7 @@ To run on a local server, execute:
 
 ```streamlit run justdata.py --server.enableCORS false --server.enableXsrfProtection false```
 
-The app has been deployed on the Streamlit Community Cloud [here](https://justdataanno.streamlit.app/).
+The app has been deployed on the Streamlit Community Cloud [here](https://justdatatool.streamlit.app/).
 
 ## Get in touch
 If you need more information or would like to contribute to JUST Data Annotation, please contact us at info@industrycommons.net
