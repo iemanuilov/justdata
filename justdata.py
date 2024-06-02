@@ -9,6 +9,8 @@ import os
 import io
 import requests
 import shutil
+import ast
+import codecs
 import pandas as pd
 # import sqlalchemy
 import hashlib
@@ -81,27 +83,37 @@ def register_user(username, password, conn, c):
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
-# Function to save annotation to database
 def save_annotation(dataset_name, dataset_url, tags, justification, uploaded_file, username):
     
     # Read the uploaded file as bytes
     file_bytes = uploaded_file.read() if uploaded_file is not None else None
     file_name = uploaded_file.name if uploaded_file is not None else None  # Save the file name
+
+    # Convert bytes to PostgreSQL bytea string
+    if file_bytes is not None:
+        file_bytes = psycopg2.Binary(file_bytes)
+
     c.execute("INSERT INTO annotations (dataset_name, dataset_url, tags, justification, file, file_name, username) VALUES (?, ?, ?, ?, ?, ?, ?)",
               (dataset_name, dataset_url, tags, justification, file_bytes, file_name, username))
     conn.commit()
 
-# Function to get annotations for a specific user
-def get_annotations(username):
-    c.execute(f"SELECT * FROM annotations WHERE username='{username}'")
-    return c.fetchall()
-
 # Function to export annotations to a ZIP file
 def export_annotations(username):
     
+    print(username)  # Print the value of username
+
+    # Check the status of the database connection
+    if conn.closed:
+        print("The database connection is closed.")
+    else:
+        print("The database connection is open.")
+        
     # Fetch annotations for the logged-in user
-    c.execute("SELECT * FROM annotations")
-    annotations = get_annotations(username)
+    c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
+    annotations = c.fetchall()
+
+    print(len(annotations))  # Print the length of annotations
+
     
     # Create directories if they don't exist
     os.makedirs(f'annotations/{username}', exist_ok=True)
@@ -110,6 +122,7 @@ def export_annotations(username):
     for annotation in annotations:
         if len(annotation) == 8:
             id, dataset_name, dataset_url, tags, justification, file_bytes, file_name, username = annotation
+            print(type(file_bytes))
             data = {
                 'id': id,
                 'dataset_url': dataset_url,
@@ -124,6 +137,7 @@ def export_annotations(username):
             
             # Save the uploaded file to a file
             if file_bytes is not None:
+                file_bytes = codecs.decode(file_bytes, 'unicode_escape')
                 with open(f'annotations/{username}/annotation{id}_{file_name}', 'wb') as f:
                     f.write(file_bytes)
         else:
@@ -140,8 +154,8 @@ def export_annotations(username):
 
     # Add a download button for the Zip file
     with open(f'exports/{zip_file_name}', 'rb') as f:
-        bytes = f.read()
-        b64 = base64.b64encode(bytes).decode()
+        file_bytes = f.read()
+        b64 = base64.b64encode(file_bytes).decode()
         href = f'<a href="data:file/zip;base64,{b64}" download=\'{zip_file_name}\'>Click to download {zip_file_name}</a>'
         st.markdown(href, unsafe_allow_html=True)
 
@@ -379,7 +393,8 @@ def app(username):
     elif action == "View Annotations":
         st.subheader("📃View Annotations")
         if username is not None:
-            annotations = get_annotations(username)
+            c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
+            annotations = c.fetchall()
 
             if annotations:  # Check if any annotations were returned
                 # Convert annotations to pandas DataFrame
@@ -435,7 +450,8 @@ def app(username):
 
     elif action == "Export Annotations":
         st.subheader("📤Export Annotations")
-        annotations = get_annotations(username)
+        #c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
+        #annotations = c.fetchall()
         if st.button("Export to ZIP"):
             export_annotations(username)
             st.success("Annotations exported to ZIP file!")
