@@ -9,11 +9,12 @@ import os
 import io
 import requests
 import shutil
-import ast
-import codecs
 import pandas as pd
-# import sqlalchemy
+import sqlalchemy
 import hashlib
+import psycopg2
+from psycopg2 import sql
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from io import StringIO
 from streamlit_tags import st_tags
 from openai import OpenAI
@@ -24,27 +25,42 @@ from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
 
 # Create a subfolder named 'database' if it doesn't exist
-os.makedirs('database', exist_ok=True)
+# os.makedirs('database', exist_ok=True)
 
-# Connect to SQLite database
-conn = sqlite3.connect('database/justdata.db')
+# Connect to PostgreSQL database
+#conn = psycopg2.connect('postgres://avnadmin:AVNS_UY8WVCi9Mez0qXkyR8V@justdata-justdatatool.j.aivencloud.com:11802/defaultdb?sslmode=require')
+conn = psycopg2.connect(
+    dbname=st.secrets["postgres"]["database"],
+    user=st.secrets["postgres"]["user"],
+    password=st.secrets["postgres"]["password"],
+    host=st.secrets["postgres"]["host"],
+    port=st.secrets["postgres"]["port"],
+    sslmode=st.secrets["postgres"]["sslmode"],
+)
+
+# Create a cursor object
 c = conn.cursor()
 
 # Create table for users if it doesn't exist
 c.execute('''CREATE TABLE IF NOT EXISTS users
              (username TEXT PRIMARY KEY,
               password TEXT)''')
+# Commit the transaction
+conn.commit()
 
 # Create table if it doesn't exist
 c.execute('''CREATE TABLE IF NOT EXISTS annotations
-             (id INTEGER PRIMARY KEY AUTOINCREMENT,
+             (id SERIAL PRIMARY KEY,
               dataset_name TEXT,
               dataset_url TEXT,
               tags TEXT,
               justification TEXT,
-              file BLOB,
+              file BYTEA,
               file_name TEXT,
               username TEXT)''')
+
+# Commit the transaction
+conn.commit()
 
 # Function to verify login credentials
 def check_credentials(username, password, c):
@@ -53,15 +69,17 @@ def check_credentials(username, password, c):
     
     print(f"Login hash: {password_hash}")  # Debug line
     
-    c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password_hash))
+    c.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password_hash))
     if c.fetchone() is not None:
         return True
     return False
     
 # Create table for predefined tags if it doesn't exist; we also ensure that each tag is unique by asking SQLite to ignore the INSERT command in case of duplicate tags
 c.execute('''CREATE TABLE IF NOT EXISTS tags
-             (id INTEGER PRIMARY KEY AUTOINCREMENT,
+             (id SERIAL PRIMARY KEY,
               tag TEXT UNIQUE)''')
+# Commit the transaction
+conn.commit()
 
 # Function to register a new user
 def register_user(username, password, conn, c):
@@ -70,50 +88,40 @@ def register_user(username, password, conn, c):
     
     print(f"Register hash: {password_hash}")  # Debug line
     
-    c.execute("SELECT * FROM users WHERE username=?", (username,))
+    c.execute("SELECT * FROM users WHERE username=%s", (username,))
     if c.fetchone() is not None:
         st.warning("Username already exists. Please choose a different username.")
         st.stop()
     
     else:
         try:
-            c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password_hash))
+            c.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password_hash))
             conn.commit()
             st.success("Registered successfully. Please go to login.")
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
+# Function to save annotation to database
 def save_annotation(dataset_name, dataset_url, tags, justification, uploaded_file, username):
     
     # Read the uploaded file as bytes
     file_bytes = uploaded_file.read() if uploaded_file is not None else None
     file_name = uploaded_file.name if uploaded_file is not None else None  # Save the file name
-
-    # Convert bytes to PostgreSQL bytea string
-    if file_bytes is not None:
-        file_bytes = psycopg2.Binary(file_bytes)
-
-    c.execute("INSERT INTO annotations (dataset_name, dataset_url, tags, justification, file, file_name, username) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO annotations (dataset_name, dataset_url, tags, justification, file, file_name, username) VALUES (%s, %s, %s, %s, %s, %s, %s)",
               (dataset_name, dataset_url, tags, justification, file_bytes, file_name, username))
     conn.commit()
+
+# Function to get annotations for a specific user
+def get_annotations(username):
+    c.execute(f"SELECT * FROM annotations WHERE username='{username}'")
+    return c.fetchall()
 
 # Function to export annotations to a ZIP file
 def export_annotations(username):
     
-    print(username)  # Print the value of username
-
-    # Check the status of the database connection
-    if conn.closed:
-        print("The database connection is closed.")
-    else:
-        print("The database connection is open.")
-        
     # Fetch annotations for the logged-in user
-    c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
-    annotations = c.fetchall()
-
-    print(len(annotations))  # Print the length of annotations
-
+    c.execute("SELECT * FROM annotations")
+    annotations = get_annotations(username)
     
     # Create directories if they don't exist
     os.makedirs(f'annotations/{username}', exist_ok=True)
@@ -122,7 +130,6 @@ def export_annotations(username):
     for annotation in annotations:
         if len(annotation) == 8:
             id, dataset_name, dataset_url, tags, justification, file_bytes, file_name, username = annotation
-            print(type(file_bytes))
             data = {
                 'id': id,
                 'dataset_url': dataset_url,
@@ -137,7 +144,8 @@ def export_annotations(username):
             
             # Save the uploaded file to a file
             if file_bytes is not None:
-                file_bytes = codecs.decode(file_bytes, 'unicode_escape')
+                if isinstance(file_bytes, str):
+                    file_bytes = file_bytes.encode()  # Convert string to bytes
                 with open(f'annotations/{username}/annotation{id}_{file_name}', 'wb') as f:
                     f.write(file_bytes)
         else:
@@ -154,8 +162,8 @@ def export_annotations(username):
 
     # Add a download button for the Zip file
     with open(f'exports/{zip_file_name}', 'rb') as f:
-        file_bytes = f.read()
-        b64 = base64.b64encode(file_bytes).decode()
+        bytes = f.read()
+        b64 = base64.b64encode(bytes).decode()
         href = f'<a href="data:file/zip;base64,{b64}" download=\'{zip_file_name}\'>Click to download {zip_file_name}</a>'
         st.markdown(href, unsafe_allow_html=True)
 
@@ -163,8 +171,14 @@ def export_annotations(username):
     shutil.rmtree('annotations')
 
 def create_download_link(row):
-    b64 = base64.b64encode(row['File']).decode()  # Convert file to base64 encoding
-    href = f'<a href="data:file/octet-stream;base64,{b64}" download="{row["File Name"]}">Download</a>'
+    if row['File'] is not None:
+        file_bytes = row['File']
+        if isinstance(file_bytes, str):
+            file_bytes = file_bytes.encode()  # Convert string to bytes
+        b64 = base64.b64encode(file_bytes).decode()  # Convert file to base64 encoding
+        href = f'<a href="data:file/octet-stream;base64,{b64}" download="{row["File Name"]}">Download</a>'
+    else:
+        href = 'No file'
     return href
 
 # Function to load dataset from a remote repository
@@ -279,7 +293,7 @@ def app(username):
         new_tag = st.text_input("Add a new tag")
         if st.button("Add Tag"):
             if new_tag:
-                c.execute("INSERT OR IGNORE INTO tags (tag) VALUES (?)", (new_tag,))
+                c.execute("INSERT INTO tags (tag) VALUES (%s) ON CONFLICT (tag) DO NOTHING", (new_tag,))
                 conn.commit()
                 st.success("Tag added successfully!")
             else:
@@ -288,7 +302,7 @@ def app(username):
         #Delete tag
         tag_to_delete = st.selectbox("Select a tag from the list to delete", predefined_tags)
         if st.button("Delete Tag"):
-            c.execute("DELETE FROM tags WHERE tag = ?", (tag_to_delete,))
+            c.execute("DELETE FROM tags WHERE tag = %s", (tag_to_delete,))
             conn.commit()
             st.success("Tag deleted successfully!")
         
@@ -297,7 +311,7 @@ def app(username):
         edited_tag = st.text_input("New name for this tag", value=tag_to_edit)
         if st.button("Save changes"):
             if edited_tag:
-                c.execute("UPDATE tags SET tag = ? WHERE tag = ?", (edited_tag, tag_to_edit))
+                c.execute("UPDATE tags SET tag = %s WHERE tag = %s", (edited_tag, tag_to_edit))
                 conn.commit()
                 st.success("Tag updated successfully!")
             else:
@@ -393,8 +407,7 @@ def app(username):
     elif action == "View Annotations":
         st.subheader("📃View Annotations")
         if username is not None:
-            c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
-            annotations = c.fetchall()
+            annotations = get_annotations(username)
 
             if annotations:  # Check if any annotations were returned
                 # Convert annotations to pandas DataFrame
@@ -450,8 +463,7 @@ def app(username):
 
     elif action == "Export Annotations":
         st.subheader("📤Export Annotations")
-        #c.execute("SELECT * FROM annotations WHERE username = %s", (username,))
-        #annotations = c.fetchall()
+        annotations = get_annotations(username)
         if st.button("Export to ZIP"):
             export_annotations(username)
             st.success("Annotations exported to ZIP file!")
