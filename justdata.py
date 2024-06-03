@@ -489,8 +489,7 @@ def app(username):
                 )
 
                 # Display the ProfileReport
-                #st_profile_report(profile)
-                st.title("Annotations Stats")
+                st.subheader("📈Annotations Stats")
                 st_profile_report(profile)
                 
             else:
