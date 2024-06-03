@@ -13,6 +13,8 @@ import pandas as pd
 import sqlalchemy
 import hashlib
 import psycopg2
+import xml.etree.ElementTree as ET
+from PyPDF2 import PdfReader
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from io import StringIO
@@ -23,9 +25,9 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
-
-# Create a subfolder named 'database' if it doesn't exist
-# os.makedirs('database', exist_ok=True)
+from streamlit_pandas_profiling import st_profile_report
+from ydata_profiling import ProfileReport
+from pydantic_settings import BaseSettings
 
 # Connect to PostgreSQL database
 conn = psycopg2.connect(
@@ -65,9 +67,6 @@ conn.commit()
 def check_credentials(username, password, c):
     # Hash the entered password
     password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
-    print(f"Login hash: {password_hash}")  # Debug line
-    
     c.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password_hash))
     if c.fetchone() is not None:
         return True
@@ -289,6 +288,7 @@ def app(username):
         st.subheader("🤓Manage your tags")
         
         #Add tag
+        st.markdown("### ➕ Add Tag")
         new_tag = st.text_input("Add a new tag")
         if st.button("Add Tag"):
             if new_tag:
@@ -299,6 +299,7 @@ def app(username):
                 st.error("Please enter a tag.")
         
         #Delete tag
+        st.markdown("### ❌ Delete Tag")
         tag_to_delete = st.selectbox("Select a tag from the list to delete", predefined_tags)
         if st.button("Delete Tag"):
             c.execute("DELETE FROM tags WHERE tag = %s", (tag_to_delete,))
@@ -306,8 +307,9 @@ def app(username):
             st.success("Tag deleted successfully!")
         
         # Edit tag
+        st.markdown("### ✒️ Edit Tag")
         tag_to_edit = st.selectbox("Select a tag to edit it", predefined_tags)
-        edited_tag = st.text_input("New name for this tag", value=tag_to_edit)
+        edited_tag = st.text_input("Enter a new name for this tag", value=tag_to_edit)
         if st.button("Save changes"):
             if edited_tag:
                 c.execute("UPDATE tags SET tag = %s WHERE tag = %s", (edited_tag, tag_to_edit))
@@ -317,15 +319,13 @@ def app(username):
                 st.error("Please enter a tag.")
 
     elif action == "Annotate Dataset":
-        
-        #st.sidebar.header("⚙️JUST Chatbot Settings")
         st.sidebar.markdown("## ⚙️JUST Chatbot Settings <small style='color: gray;'>🏷️BETA</small>", unsafe_allow_html=True)
-        st.sidebar.markdown("<small>Please enter your OpenAI API Key to unlock the JUST chatbot.</small>", unsafe_allow_html=True)
+        st.sidebar.markdown("<small>Enter your OpenAI API Key to activate the JUST chatbot powered by GPT-4 Turbo.</small>", unsafe_allow_html=True)
         with st.sidebar.form(key='chatbot_settings_form'):
             openai_api_key = st.text_input("OpenAI API Key", type="password")
             submit_button = st.form_submit_button(label='Submit')
 
-        st.sidebar.markdown("<small>Use the OpenAI API key provided in the documentation. This is an example of an API 🔑:<br>`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`</small>", unsafe_allow_html=True)
+        st.sidebar.markdown("<small>🔑 Use the OpenAI API key provided in the documentation.</small>", unsafe_allow_html=True)
 
         if 'chatbot_active' not in st.session_state:
                 st.session_state['chatbot_active'] = False
@@ -338,7 +338,6 @@ def app(username):
         dataset_name = st.text_input("Dataset Name", key='annotate_dataset_name')
         dataset_url = st.text_input("Dataset URL", key='annotate_dataset_url')
         tags = st.multiselect("Predefined tags", predefined_tags, key='annotate_tags')
-        #user_tags = st.text_input("User-defined tags (separated by commas)", key='annotate_user_tags')
         user_tags = st_tags(
             label='Enter your own tags',
             text='Press enter to add more',
@@ -355,13 +354,40 @@ def app(username):
             st.success("Annotation saved successfully!")
         
         if dataset_url:
-            df = pd.read_csv(dataset_url)
+            # Get the file extension
+            _, file_extension = os.path.splitext(dataset_url)
+
+            # Load the file based on its extension
+            if file_extension == '.csv':
+                df = pd.read_csv(dataset_url)
+            elif file_extension == '.xlsx':
+                df = pd.read_excel(dataset_url)
+            elif file_extension == '.json':
+                df = pd.read_json(dataset_url)
+            elif file_extension == '.pdf':
+                response = requests.get(dataset_url)
+                with open('temp.pdf', 'wb') as file:
+                    file.write(response.content)
+                with open('temp.pdf', 'rb') as file:
+                    pdf = PdfReader(file)
+                    text = ''
+                    for page in range(len(pdf.pages)):
+                        text += pdf.pages[page].extract_text()
+                    df = pd.DataFrame([text], columns=['Text'])
+                os.remove('temp.pdf')  # delete the temporary file
+            elif file_extension == '.xml':
+                response = requests.get(dataset_url)
+                tree = ET.ElementTree(ET.fromstring(response.content))
+                root = tree.getroot()
+                data = [{child.tag: child.text for child in root.iter()}]
+                df = pd.DataFrame(data)
+            else:
+                raise ValueError(f'Unsupported file type: {file_extension}')
 
             if submit_button:
                 st.session_state['chatbot_active'] = True
             
             if st.session_state['chatbot_active']:
-                #st.subheader("💬JUST explore and chat with your dataset")
                 st.markdown("### 💬JUST explore and chat with your dataset <small style='color: gray;'>🏷️BETA</small>", unsafe_allow_html=True)
                 st.dataframe(df) # Let's visualise the dataset
             # Initialize conversation history
@@ -384,7 +410,7 @@ def app(username):
 
                     # Initialize LLM
                     llm = ChatOpenAI(
-                        temperature=0, model="gpt-3.5-turbo-0613", openai_api_key=openai_api_key, streaming=True
+                        temperature=0, model="gpt-4-turbo", openai_api_key=openai_api_key, streaming=True
                     )
                 
                                 # Create a pandas dataframe agent
@@ -426,12 +452,6 @@ def app(username):
                 # Sort the DataFrame by 'Dataset Name'
                 df.sort_values('Dataset Name', inplace=True)
 
-                # Display annotations as a table
-                #st.table(df)
-                # Display annotations as a dataframe with a background gradient
-                #st.dataframe(df.style.background_gradient(cmap='viridis'))
-                # Display annotations as a dataframe with a background gradient
-
                 # Set CSS properties for th elements in dataframe
                 th_props = [
                     ('font-size', '13px'),
@@ -455,6 +475,22 @@ def app(username):
                 # Apply the styles to the DataFrame
                 df_styled = df.style.background_gradient(cmap='viridis').set_table_styles(styles)
                 st.markdown(df_styled.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+                # Specify the columns you want to include in the report
+                columns_to_include = ['Tags', 'Justification']
+
+                # Generate a ProfileReport object for the specified columns
+                profile = ProfileReport(df[columns_to_include], title="Annotations Analytics", explorative=True,
+                        samples=None,
+                        correlations=None,
+                        missing_diagrams=None,
+                        duplicates=None,
+                        interactions=None,
+                )
+
+                # Display the ProfileReport
+                st_profile_report(profile)
+                
             else:
                 st.warning("No annotations found.")
         else:
@@ -468,7 +504,8 @@ def app(username):
             st.success("Annotations exported to ZIP file!")
 
     # Add a footer
-    st.sidebar.markdown("© 2024 Industry Commons Foundation")
+    #st.sidebar.markdown("© 2024 Industry Commons Foundation")
+    st.sidebar.markdown("© 2024 [Industry Commons Foundation](https://www.industrycommons.net)")
 
     # Close database connection
     conn.close()
