@@ -25,8 +25,8 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
-from streamlit_pandas_profiling import st_profile_report
 from ydata_profiling import ProfileReport
+from streamlit_ydata_profiling import st_profile_report
 from pydantic_settings import BaseSettings
 
 # Connect to PostgreSQL database
@@ -489,6 +489,8 @@ def app(username):
                 )
 
                 # Display the ProfileReport
+                #st_profile_report(profile)
+                st.title("Annotations Stats")
                 st_profile_report(profile)
                 
             else:
