@@ -110,3 +110,4 @@ yarl==1.9.4
 ydata-profiling
 streamlit-ydata-profiling
 zipp==1.0.0
+xlsxwriter==3.2.0

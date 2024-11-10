@@ -18,6 +18,7 @@ from PyPDF2 import PdfReader
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from io import StringIO
+from io import BytesIO
 from streamlit_tags import st_tags
 from openai import OpenAI
 from datasets import load_dataset
@@ -113,6 +114,32 @@ def save_annotation(dataset_name, dataset_url, tags, justification, uploaded_fil
 def get_annotations(username):
     c.execute(f"SELECT * FROM annotations WHERE username='{username}'")
     return c.fetchall()
+
+# Function to fetch all annotations from the database
+def get_all_annotations():
+    query = "SELECT * FROM annotations;"
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+        data = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+    df = pd.DataFrame(data, columns=columns)
+    if 'File' in df.columns:
+        df = df.drop(columns=['File'])
+    return df
+
+# Function to create a download link for the DataFrame
+def create_download_link_all(df, filename="annotations.xlsx"):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Annotations')
+    writer.close()
+    output.seek(0)
+    return st.download_button(
+        label="Download data",
+        data=output,
+        file_name=filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # Function to export annotations to a ZIP file
 def export_annotations(username):
@@ -273,7 +300,7 @@ def app(username):
     # Add some space before the selectbox
     st.sidebar.markdown(" ")
 
-    action = st.sidebar.selectbox("Select an action", ["Annotate Dataset", "View Annotations", "Export Annotations", "Manage Tags"])
+    action = st.sidebar.selectbox("Select an action", ["Annotate Dataset", "View Annotations", "Export Annotations", "Manage Tags", "Admin Panel"])
 
     # Add some space after the selectbox
     st.sidebar.markdown(" ")
@@ -503,6 +530,22 @@ def app(username):
         if st.button("Export to ZIP"):
             export_annotations(username)
             st.success("Annotations exported to ZIP file!")
+    
+    elif action == "Admin Panel":
+        st.title("Administrative Panel")
+
+        # Fetch all annotations
+        annotations = get_all_annotations()
+
+        # Exclude the 'File' column if it exists
+        if 'File' in annotations.columns:
+            annotations = annotations.drop(columns=['File'])
+
+        # Display the DataFrame using Streamlit
+        st.dataframe(annotations)
+
+        # Provide a download link for the DataFrame
+        create_download_link_all(annotations)
 
     # Add a footer
     #st.sidebar.markdown("© 2024 Industry Commons Foundation")
